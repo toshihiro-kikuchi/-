@@ -1,0 +1,1332 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>シフト管理 & 給与計算</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700;900&family=Space+Mono:wght@400;700&display=swap');
+
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --surface2: #1a2235;
+    --border: #1e2d45;
+    --accent: #00d4ff;
+    --accent2: #7c3aed;
+    --accent3: #10b981;
+    --danger: #ef4444;
+    --warn: #f59e0b;
+    --text: #e2e8f0;
+    --text2: #94a3b8;
+    --text3: #475569;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ===== NAV ===== */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: rgba(10,14,26,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 24px; height: 60px;
+  }
+  .nav-logo {
+    font-family: 'Space Mono', monospace;
+    font-size: 14px; font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 2px;
+  }
+  .nav-tabs { display: flex; gap: 4px; }
+  .nav-tab {
+    padding: 6px 14px; border-radius: 6px; border: none;
+    background: transparent; color: var(--text2);
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 13px; cursor: pointer; transition: all .2s;
+  }
+  .nav-tab:hover { background: var(--surface2); color: var(--text); }
+  .nav-tab.active { background: var(--accent2); color: #fff; }
+
+  /* ===== PAGES ===== */
+  .page { display: none; padding: 80px 24px 40px; max-width: 1100px; margin: 0 auto; }
+  .page.active { display: block; }
+
+  /* ===== HEADINGS ===== */
+  .page-title {
+    font-size: 24px; font-weight: 700; margin-bottom: 24px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .page-title span { color: var(--accent); }
+
+  /* ===== CARDS ===== */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px;
+    margin-bottom: 16px;
+  }
+  .card-title {
+    font-size: 13px; font-weight: 700; color: var(--text2);
+    text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px;
+  }
+
+  /* ===== GRID ===== */
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
+  @media(max-width:700px) { .grid2,.grid3 { grid-template-columns: 1fr; } }
+
+  /* ===== STAT BOXES ===== */
+  .stat-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px;
+    text-align: center;
+  }
+  .stat-num { font-family: 'Space Mono', monospace; font-size: 28px; font-weight: 700; color: var(--accent); }
+  .stat-label { font-size: 12px; color: var(--text2); margin-top: 4px; }
+
+  /* ===== BUTTONS ===== */
+  .btn {
+    padding: 10px 20px; border-radius: 8px; border: none;
+    font-family: 'Noto Sans JP', sans-serif; font-size: 14px; font-weight: 500;
+    cursor: pointer; transition: all .2s;
+  }
+  .btn-primary { background: var(--accent2); color: #fff; }
+  .btn-primary:hover { background: #6d28d9; transform: translateY(-1px); }
+  .btn-accent { background: var(--accent); color: #000; font-weight: 700; }
+  .btn-accent:hover { opacity: .85; transform: translateY(-1px); }
+  .btn-success { background: var(--accent3); color: #fff; }
+  .btn-success:hover { background: #059669; }
+  .btn-danger { background: var(--danger); color: #fff; }
+  .btn-danger:hover { background: #dc2626; }
+  .btn-ghost {
+    background: transparent; color: var(--text2);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover { background: var(--surface2); color: var(--text); }
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+
+  /* ===== FORM ===== */
+  .form-group { margin-bottom: 14px; }
+  .form-label { display: block; font-size: 12px; color: var(--text2); margin-bottom: 6px; font-weight: 500; }
+  .form-input {
+    width: 100%; padding: 10px 12px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text);
+    font-family: 'Noto Sans JP', sans-serif; font-size: 14px;
+    transition: border-color .2s;
+  }
+  .form-input:focus { outline: none; border-color: var(--accent2); }
+  .form-row { display: flex; gap: 12px; }
+  .form-row .form-group { flex: 1; }
+
+  /* ===== TABLE ===== */
+  .tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .tbl th {
+    text-align: left; padding: 10px 12px;
+    color: var(--text2); font-weight: 600; font-size: 11px;
+    text-transform: uppercase; letter-spacing: .5px;
+    border-bottom: 1px solid var(--border);
+  }
+  .tbl td {
+    padding: 10px 12px; border-bottom: 1px solid var(--border);
+    color: var(--text);
+  }
+  .tbl tr:last-child td { border-bottom: none; }
+  .tbl tr:hover td { background: var(--surface2); }
+
+  /* ===== BADGE ===== */
+  .badge {
+    display: inline-block; padding: 3px 8px; border-radius: 20px;
+    font-size: 11px; font-weight: 700;
+  }
+  .badge-green { background: rgba(16,185,129,.15); color: var(--accent3); }
+  .badge-red { background: rgba(239,68,68,.15); color: var(--danger); }
+  .badge-gray { background: rgba(148,163,184,.1); color: var(--text2); }
+  .badge-blue { background: rgba(0,212,255,.1); color: var(--accent); }
+
+  /* ===== QR SCAN PAGE ===== */
+  .qr-hero {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; min-height: calc(100vh - 120px);
+    text-align: center; gap: 24px;
+  }
+  .qr-title { font-size: 32px; font-weight: 900; line-height: 1.2; }
+  .qr-title em { color: var(--accent); font-style: normal; }
+  .qr-subtitle { color: var(--text2); font-size: 15px; }
+
+  #scan-video-wrap {
+    position: relative; width: 280px; height: 280px;
+    border-radius: 16px; overflow: hidden;
+    border: 2px solid var(--accent);
+    box-shadow: 0 0 40px rgba(0,212,255,.2);
+  }
+  #scan-video { width: 100%; height: 100%; object-fit: cover; }
+  .scan-corner {
+    position: absolute; width: 24px; height: 24px;
+    border-color: var(--accent); border-style: solid;
+  }
+  .scan-corner.tl { top: 8px; left: 8px; border-width: 3px 0 0 3px; }
+  .scan-corner.tr { top: 8px; right: 8px; border-width: 3px 3px 0 0; }
+  .scan-corner.bl { bottom: 8px; left: 8px; border-width: 0 0 3px 3px; }
+  .scan-corner.br { bottom: 8px; right: 8px; border-width: 0 3px 3px 0; }
+
+  .scan-line {
+    position: absolute; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    animation: scanline 2s linear infinite;
+  }
+  @keyframes scanline {
+    0% { top: 10%; }
+    50% { top: 85%; }
+    100% { top: 10%; }
+  }
+
+  #scan-result {
+    padding: 16px 24px; border-radius: 10px;
+    font-size: 18px; font-weight: 700;
+    min-width: 280px; text-align: center;
+    display: none;
+  }
+  #scan-result.success { background: rgba(16,185,129,.15); color: var(--accent3); border: 1px solid rgba(16,185,129,.3); }
+  #scan-result.error { background: rgba(239,68,68,.15); color: var(--danger); border: 1px solid rgba(239,68,68,.3); }
+
+  /* ===== QR DISPLAY ===== */
+  #qr-display-wrap {
+    display: flex; flex-wrap: wrap; gap: 16px; justify-content: center;
+  }
+  .qr-card {
+    background: #fff; border-radius: 12px;
+    padding: 16px; text-align: center; min-width: 160px;
+  }
+  .qr-card-name { color: #111; font-weight: 700; font-size: 14px; margin-top: 8px; }
+  .qr-card-id { color: #555; font-size: 11px; margin-top: 2px; }
+
+  /* ===== PAYROLL ===== */
+  .payroll-total {
+    font-family: 'Space Mono', monospace;
+    font-size: 36px; font-weight: 700; color: var(--accent3);
+  }
+  .payroll-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 0; border-bottom: 1px solid var(--border);
+    font-size: 14px;
+  }
+  .payroll-row:last-child { border-bottom: none; }
+  .payroll-amount { font-family: 'Space Mono', monospace; font-weight: 700; }
+
+  /* ===== MODAL ===== */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.7);
+    z-index: 200; display: none; align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 28px; width: 100%; max-width: 480px;
+  }
+  .modal-title { font-size: 18px; font-weight: 700; margin-bottom: 20px; }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+
+  /* ===== TOAST ===== */
+  #toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); padding: 12px 24px; border-radius: 8px;
+    font-size: 14px; z-index: 999;
+    transition: transform .3s ease;
+    pointer-events: none;
+  }
+  #toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* ===== CLOCK ===== */
+  #clock {
+    font-family: 'Space Mono', monospace;
+    font-size: 48px; font-weight: 700; color: var(--accent);
+    letter-spacing: 4px;
+  }
+  #clock-date { font-size: 14px; color: var(--text2); margin-top: 4px; }
+
+  /* ===== EMPTY STATE ===== */
+  .empty { text-align: center; padding: 40px; color: var(--text3); font-size: 14px; }
+
+  /* ===== SCROLLBAR ===== */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  select.form-input option { background: var(--surface2); }
+
+  .flex-between { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+  .flex-gap { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .dot-green { background: var(--accent3); box-shadow: 0 0 6px var(--accent3); }
+  .dot-red { background: var(--danger); }
+
+  .working-row td:first-child { border-left: 3px solid var(--accent3); }
+  canvas#scan-canvas { display: none; }
+
+  .break-check-wrap {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--surface2); border: 2px solid var(--border);
+    border-radius: 12px; padding: 14px 20px;
+    cursor: pointer; user-select: none; transition: border-color .2s;
+  }
+  .break-check-wrap:hover { border-color: var(--warn); }
+  .break-toggle {
+    width: 44px; height: 24px; border-radius: 12px;
+    background: var(--border); position: relative; transition: background .2s; flex-shrink: 0;
+  }
+  .break-toggle::after {
+    content: ''; position: absolute; top: 4px; left: 4px;
+    width: 16px; height: 16px; border-radius: 50%;
+    background: #fff; transition: transform .2s;
+  }
+  .break-check-wrap.checked .break-toggle { background: var(--warn); }
+  .break-check-wrap.checked .break-toggle::after { transform: translateX(20px); }
+  .break-label { font-size: 15px; color: var(--text); }
+  .break-label small { display: block; font-size: 11px; color: var(--text2); margin-top: 2px; }
+  .badge-warn { background: rgba(245,158,11,.15); color: var(--warn); }
+
+  /* ===== ADMIN LOCK ===== */
+  .admin-btn {
+    display: flex; align-items: center; gap: 6px;
+    padding: 6px 14px; border-radius: 6px; border: none;
+    font-family: 'Noto Sans JP', sans-serif; font-size: 13px;
+    cursor: pointer; transition: all .2s;
+  }
+  .admin-btn.locked { background: var(--surface2); color: var(--text2); border: 1px solid var(--border); }
+  .admin-btn.unlocked { background: rgba(16,185,129,.15); color: var(--accent3); border: 1px solid rgba(16,185,129,.3); }
+  .nav-tab.admin-only { display: none; }
+  body.admin-mode .nav-tab.admin-only { display: inline-block; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">⏱ TIMECARD</div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('punch')">打刻</button>
+    <button class="nav-tab admin-only" onclick="showPage('records')">勤怠記録</button>
+    <button class="nav-tab admin-only" onclick="showPage('payroll')">給与計算</button>
+    <button class="nav-tab admin-only" onclick="showPage('staff')">スタッフ管理</button>
+    <button class="nav-tab admin-only" onclick="showPage('qrcodes')">QRコード</button>
+  </div>
+  <button class="admin-btn locked" id="admin-btn" onclick="toggleAdmin()">🔒 管理者</button>
+</nav>
+
+<!-- ========== PUNCH PAGE ========== -->
+<div id="page-punch" class="page active">
+  <div class="qr-hero">
+    <div>
+      <div id="clock">--:--:--</div>
+      <div id="clock-date"></div>
+    </div>
+    <div class="qr-title">QRコードを<br><em>スキャン</em>してください</div>
+    <div class="qr-subtitle">個人のQRコードをカメラにかざすと出退勤が記録されます</div>
+
+    <div id="scan-video-wrap">
+      <video id="scan-video" autoplay playsinline muted></video>
+      <canvas id="scan-canvas"></canvas>
+      <div class="scan-corner tl"></div>
+      <div class="scan-corner tr"></div>
+      <div class="scan-corner bl"></div>
+      <div class="scan-corner br"></div>
+      <div class="scan-line"></div>
+    </div>
+
+    <div id="scan-result"></div>
+
+    <button class="btn btn-ghost" onclick="startCamera()">📷 カメラを起動</button>
+
+    <div style="margin-top:12px; color:var(--text2); font-size:13px;">— または —</div>
+    <div class="flex-gap" style="justify-content:center">
+      <select id="manual-staff" class="form-input" style="width:200px"></select>
+      <button class="btn btn-accent" onclick="manualPunch()">手動打刻</button>
+    </div>
+
+    <div style="margin-top:8px; color:var(--text2); font-size:13px;">— 退勤時のオプション —</div>
+    <div style="display:flex; align-items:center; gap:12px; background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:14px 20px;">
+      <span style="font-size:15px">☕ 休憩時間</span>
+      <select id="break-select" class="form-input" style="width:130px">
+        <option value="0">なし</option>
+        <option value="15">15分</option>
+        <option value="30">30分</option>
+        <option value="45">45分</option>
+        <option value="60">60分</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<!-- ========== RECORDS PAGE ========== -->
+<div id="page-records" class="page">
+  <div class="flex-between" style="margin-bottom:24px">
+    <div class="page-title"><span>📋</span> 勤怠記録</div>
+    <div class="flex-gap">
+      <input type="month" id="filter-month" class="form-input" style="width:160px">
+      <select id="filter-staff" class="form-input" style="width:160px">
+        <option value="">全スタッフ</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="grid3" id="summary-stats" style="margin-bottom:20px"></div>
+
+  <div class="card">
+    <div class="flex-between" style="margin-bottom:12px">
+      <div class="card-title" style="margin-bottom:0">打刻履歴</div>
+      <div class="flex-gap">
+        <button class="btn btn-primary btn-sm" onclick="openAddRecord()">＋ 手動追加</button>
+        <button class="btn btn-ghost btn-sm" onclick="exportCSV()">📥 CSV出力</button>
+      </div>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>日付</th>
+            <th>スタッフ</th>
+            <th>出勤</th>
+            <th>退勤</th>
+            <th>休憩</th>
+            <th>実働時間</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="records-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ========== PAYROLL PAGE ========== -->
+<div id="page-payroll" class="page">
+  <div class="flex-between" style="margin-bottom:24px">
+    <div class="page-title"><span>💴</span> 給与計算</div>
+    <div class="flex-gap">
+      <input type="month" id="payroll-month" class="form-input" style="width:160px">
+      <button class="btn btn-success" onclick="calcPayroll()">計算する</button>
+    </div>
+  </div>
+  <div id="payroll-results"></div>
+</div>
+
+<!-- ========== STAFF PAGE ========== -->
+<div id="page-staff" class="page">
+  <div class="flex-between" style="margin-bottom:24px">
+    <div class="page-title"><span>👥</span> スタッフ管理</div>
+    <button class="btn btn-primary" onclick="openAddStaff()">+ スタッフ追加</button>
+  </div>
+  <div class="card">
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>名前</th>
+          <th>時給</th>
+          <th>交通費/日</th>
+          <th>雇用形態</th>
+          <th>ステータス</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody id="staff-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ========== QR CODES PAGE ========== -->
+<div id="page-qrcodes" class="page">
+  <div class="page-title"><span>🔲</span> QRコード一覧</div>
+  <p style="color:var(--text2); font-size:14px; margin-bottom:24px">
+    各スタッフのQRコードを印刷して渡すか、スクリーンショットで保存してください。
+  </p>
+  <div id="qr-display-wrap"></div>
+</div>
+
+<!-- ========== MODAL: ADD STAFF ========== -->
+<div class="modal-overlay" id="modal-staff">
+  <div class="modal">
+    <div class="modal-title" id="modal-staff-title">スタッフを追加</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">名前</label>
+        <input class="form-input" id="s-name" placeholder="例：田中 花子">
+      </div>
+      <div class="form-group">
+        <label class="form-label">読み仮名</label>
+        <input class="form-input" id="s-kana" placeholder="例：タナカ ハナコ">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">時給（円）</label>
+        <input class="form-input" id="s-wage" type="number" placeholder="1100" value="1100">
+      </div>
+      <div class="form-group">
+        <label class="form-label">雇用形態</label>
+        <select class="form-input" id="s-type">
+          <option>アルバイト</option>
+          <option>パート</option>
+          <option>社員</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">交通費（円 / 1日）</label>
+        <input class="form-input" id="s-transport" type="number" placeholder="0" value="0">
+      </div>
+      <div class="form-group">
+        <label class="form-label">交通費の上限（円 / 月、0=上限なし）</label>
+        <input class="form-input" id="s-transport-cap" type="number" placeholder="0" value="0">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-staff')">キャンセル</button>
+      <button class="btn btn-primary" onclick="saveStaff()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== TOAST ========== -->
+<!-- ========== MODAL: ADD/EDIT RECORD ========== -->
+<div class="modal-overlay" id="modal-record">
+  <div class="modal">
+    <div class="modal-title" id="modal-record-title">打刻を追加</div>
+    <div id="modal-record-staff-wrap" class="form-group">
+      <label class="form-label">スタッフ</label>
+      <select class="form-input" id="r-staff"></select>
+    </div>
+    <div id="modal-record-name" style="font-size:13px;color:var(--text2);margin-bottom:16px;margin-top:-8px;display:none"></div>
+    <div class="form-group">
+      <label class="form-label">日付</label>
+      <input class="form-input" id="r-date" type="date">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">出勤時刻</label>
+        <input class="form-input" id="r-in" type="time">
+      </div>
+      <div class="form-group">
+        <label class="form-label">退勤時刻（未退勤の場合は空欄）</label>
+        <input class="form-input" id="r-out" type="time">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">休憩時間</label>
+      <select class="form-input" id="r-break-mins">
+        <option value="0">なし</option>
+        <option value="15">15分</option>
+        <option value="30">30分</option>
+        <option value="45">45分</option>
+        <option value="60">60分</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-record')">キャンセル</button>
+      <button class="btn btn-primary" onclick="saveRecord()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== MODAL: ADMIN LOGIN ========== -->
+<div class="modal-overlay" id="modal-admin">
+  <div class="modal" style="max-width:360px;text-align:center">
+    <div style="font-size:32px;margin-bottom:8px">🔐</div>
+    <div class="modal-title" style="justify-content:center" id="admin-modal-title">管理者パスワード</div>
+    <div id="admin-modal-sub" style="font-size:13px;color:var(--text2);margin-bottom:20px;margin-top:-12px">パスワードを入力してください</div>
+    <input class="form-input" id="admin-password-input" type="password" placeholder="パスワード"
+      style="text-align:center;font-size:18px;letter-spacing:4px;margin-bottom:8px"
+      onkeydown="if(event.key==='Enter') confirmAdminPassword()">
+    <div id="admin-error" style="color:var(--danger);font-size:13px;min-height:20px;margin-bottom:8px"></div>
+    <div class="modal-actions" style="justify-content:center">
+      <button class="btn btn-ghost" onclick="closeModal('modal-admin')">キャンセル</button>
+      <button class="btn btn-primary" onclick="confirmAdminPassword()">ログイン</button>
+    </div>
+    <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+      <button class="btn btn-ghost btn-sm" onclick="showChangePassword()" id="btn-change-pw">🔑 パスワードを変更</button>
+    </div>
+    <div id="change-pw-area" style="display:none;margin-top:12px">
+      <input class="form-input" id="new-password-input" type="password" placeholder="新しいパスワード" style="margin-bottom:8px">
+      <input class="form-input" id="new-password-confirm" type="password" placeholder="確認（もう一度）" style="margin-bottom:8px">
+      <button class="btn btn-success btn-sm" onclick="changePassword()">変更を保存</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ====================================================
+// ADMIN MODE
+// ====================================================
+const DEFAULT_PASSWORD = '1234';
+let isAdminMode = false;
+
+function getAdminPassword() {
+  return localStorage.getItem('tc_admin_pw') || DEFAULT_PASSWORD;
+}
+
+function toggleAdmin() {
+  if (isAdminMode) {
+    // ロック
+    isAdminMode = false;
+    document.body.classList.remove('admin-mode');
+    document.getElementById('admin-btn').className = 'admin-btn locked';
+    document.getElementById('admin-btn').textContent = '🔒 管理者';
+    // 打刻ページに戻す
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('page-punch').classList.add('active');
+    document.querySelector('.nav-tab').classList.add('active');
+    toast('管理者モードを終了しました');
+  } else {
+    // ログインモーダルを開く
+    document.getElementById('admin-password-input').value = '';
+    document.getElementById('admin-error').textContent = '';
+    document.getElementById('change-pw-area').style.display = 'none';
+    openModal('modal-admin');
+    setTimeout(() => document.getElementById('admin-password-input').focus(), 100);
+  }
+}
+
+function confirmAdminPassword() {
+  const input = document.getElementById('admin-password-input').value;
+  if (input === getAdminPassword()) {
+    isAdminMode = true;
+    document.body.classList.add('admin-mode');
+    document.getElementById('admin-btn').className = 'admin-btn unlocked';
+    document.getElementById('admin-btn').innerHTML = '🔓 管理者中';
+    closeModal('modal-admin');
+    toast('管理者モードで入りました ✅', 'var(--accent3)');
+  } else {
+    document.getElementById('admin-error').textContent = '❌ パスワードが違います';
+    document.getElementById('admin-password-input').value = '';
+    document.getElementById('admin-password-input').focus();
+  }
+}
+
+function showChangePassword() {
+  // パスワード変更は管理者ログイン後のみ
+  if (!isAdminMode) {
+    document.getElementById('change-pw-area').style.display =
+      document.getElementById('change-pw-area').style.display === 'none' ? 'block' : 'none';
+  } else {
+    document.getElementById('change-pw-area').style.display =
+      document.getElementById('change-pw-area').style.display === 'none' ? 'block' : 'none';
+  }
+}
+
+function changePassword() {
+  const np = document.getElementById('new-password-input').value;
+  const nc = document.getElementById('new-password-confirm').value;
+  if (!np) { toast('新しいパスワードを入力してください', 'var(--warn)'); return; }
+  if (np !== nc) { toast('パスワードが一致しません', 'var(--danger)'); return; }
+  localStorage.setItem('tc_admin_pw', np);
+  document.getElementById('change-pw-area').style.display = 'none';
+  document.getElementById('new-password-input').value = '';
+  document.getElementById('new-password-confirm').value = '';
+  closeModal('modal-admin');
+  toast('パスワードを変更しました 🔑');
+}
+
+
+let state = {
+  staff: [],
+  records: [],
+  editingStaffId: null
+};
+
+function saveState() {
+  try {
+    localStorage.setItem('tc_state', JSON.stringify(state));
+  } catch(e) {}
+}
+function loadState() {
+  try {
+    const s = localStorage.getItem('tc_state');
+    if (s) state = JSON.parse(s);
+  } catch(e) {}
+}
+
+// ====================================================
+// INIT
+// ====================================================
+loadState();
+if (state.staff.length === 0) {
+  // サンプルスタッフ
+  state.staff = [
+    { id: uid(), name: '田中 花子', kana: 'タナカ ハナコ', wage: 1100, type: 'アルバイト' },
+    { id: uid(), name: '鈴木 一郎', kana: 'スズキ イチロウ', wage: 1200, type: 'アルバイト' },
+    { id: uid(), name: '佐藤 美咲', kana: 'サトウ ミサキ', wage: 1050, type: 'パート' },
+  ];
+  saveState();
+}
+
+// init month filters
+const now = new Date();
+const monthStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+document.getElementById('filter-month').value = monthStr;
+document.getElementById('payroll-month').value = monthStr;
+
+renderStaff();
+renderRecords();
+populateStaffSelects();
+renderQRCodes();
+updateClock();
+setInterval(updateClock, 1000);
+
+// ====================================================
+// UTILS
+// ====================================================
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+function fmt(date) {
+  return new Date(date).toLocaleTimeString('ja-JP', {hour:'2-digit', minute:'2-digit'});
+}
+function fmtDate(date) {
+  return new Date(date).toLocaleDateString('ja-JP', {month:'2-digit', day:'2-digit', weekday:'short'});
+}
+function diffHours(a, b) {
+  return Math.round((b - a) / 36000) / 100;
+}
+// 出勤：15分単位で切り上げ
+function roundIn(ts) {
+  const d = new Date(ts);
+  const mins = d.getHours() * 60 + d.getMinutes();
+  const rounded = Math.ceil(mins / 15) * 15;
+  return rounded; // 分で返す
+}
+// 退勤：15分単位で切り捨て
+function roundOut(ts) {
+  const d = new Date(ts);
+  const mins = d.getHours() * 60 + d.getMinutes();
+  const rounded = Math.floor(mins / 15) * 15;
+  return rounded; // 分で返す
+}
+// 丸めた後の実働時間（時間単位）
+function netHours(r) {
+  if (!r.out) return null;
+  const inMins = roundIn(r.in);
+  const outMins = roundOut(r.out);
+  const breakMins = r.breakMins || 0;
+  let h = Math.max(0, (outMins - inMins - breakMins) / 60);
+  return h;
+}
+// 丸めた時刻を「HH:MM」で表示
+function fmtRounded(ts, isIn) {
+  const mins = isIn ? roundIn(ts) : roundOut(ts);
+  const hh = String(Math.floor(mins / 60)).padStart(2, '0');
+  const mm = String(mins % 60).padStart(2, '0');
+  return `${hh}:${mm}`;
+}
+function toast(msg, color='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.color = color || 'var(--text)';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent = now.toLocaleTimeString('ja-JP');
+  document.getElementById('clock-date').textContent = now.toLocaleDateString('ja-JP', {
+    year:'numeric', month:'long', day:'numeric', weekday:'long'
+  });
+}
+
+// ====================================================
+// NAVIGATION
+// ====================================================
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  event.currentTarget.classList.add('active');
+  if (id === 'records') renderRecords();
+  if (id === 'payroll') renderPayroll();
+  if (id === 'qrcodes') renderQRCodes();
+}
+
+// ====================================================
+// BREAK (punch page)
+// ====================================================
+function getBreakMins() {
+  return parseInt(document.getElementById('break-select').value) || 0;
+}
+function resetBreakSelect() {
+  document.getElementById('break-select').value = '0';
+}
+
+// ====================================================
+// CAMERA / QR SCAN
+// ====================================================
+let videoStream = null;
+let scanInterval = null;
+let lastScanned = null;
+let lastScannedTime = 0;
+
+async function startCamera() {
+  if (videoStream) return;
+  try {
+    videoStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment' }
+    });
+    const video = document.getElementById('scan-video');
+    video.srcObject = videoStream;
+    toast('カメラ起動しました 📷');
+    scanInterval = setInterval(scanFrame, 400);
+  } catch(e) {
+    toast('カメラのアクセス許可が必要です', 'var(--danger)');
+  }
+}
+
+function scanFrame() {
+  const video = document.getElementById('scan-video');
+  const canvas = document.getElementById('scan-canvas');
+  if (!video.readyState) return;
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0);
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const code = jsQR(imageData.data, imageData.width, imageData.height);
+  if (code) {
+    const now = Date.now();
+    if (code.data === lastScanned && now - lastScannedTime < 4000) return;
+    lastScanned = code.data;
+    lastScannedTime = now;
+    processPunch(code.data);
+  }
+}
+
+function processPunch(qrId) {
+  const staff = state.staff.find(s => s.id === qrId);
+  const res = document.getElementById('scan-result');
+  if (!staff) {
+    res.textContent = '❌ 無効なQRコードです';
+    res.className = 'error';
+    res.style.display = 'block';
+    setTimeout(() => { res.style.display='none'; }, 3000);
+    return;
+  }
+  doPunch(staff);
+}
+
+function manualPunch() {
+  const sel = document.getElementById('manual-staff');
+  const staff = state.staff.find(s => s.id === sel.value);
+  if (!staff) { toast('スタッフを選択してください', 'var(--warn)'); return; }
+  doPunch(staff);
+}
+
+function doPunch(staff) {
+  const res = document.getElementById('scan-result');
+  const now = Date.now();
+  // 今日の打刻を探す
+  const today = new Date().toDateString();
+  const todayRec = state.records.find(r =>
+    r.staffId === staff.id &&
+    new Date(r.date).toDateString() === today &&
+    !r.out
+  );
+
+  if (todayRec) {
+    // 退勤
+    todayRec.out = now;
+    const bm = getBreakMins();
+    todayRec.breakMins = bm;
+    todayRec.break = bm > 0; // 後方互換
+    resetBreakSelect();
+    const breakLabel = bm > 0 ? `（休憩${bm}分）` : '';
+    res.textContent = `✅ ${staff.name} 退勤 ${fmt(now)}${breakLabel}`;
+    res.className = 'success';
+    toast(`${staff.name} 退勤しました 👋`, 'var(--accent3)');
+  } else {
+    // 出勤
+    state.records.push({ id: uid(), staffId: staff.id, date: now, in: now, out: null, breakMins: 0, break: false });
+    res.textContent = `✅ ${staff.name} 出勤 ${fmt(now)}`;
+    res.className = 'success';
+    toast(`${staff.name} 出勤しました 👍`, 'var(--accent)');
+  }
+  res.style.display = 'block';
+  setTimeout(() => { res.style.display='none'; }, 4000);
+  saveState();
+}
+
+// ====================================================
+// RECORDS
+// ====================================================
+function renderRecords() {
+  const month = document.getElementById('filter-month').value;
+  const staffId = document.getElementById('filter-staff').value;
+  const [yr, mo] = month.split('-').map(Number);
+
+  let recs = state.records.filter(r => {
+    const d = new Date(r.date);
+    return d.getFullYear()===yr && d.getMonth()+1===mo;
+  });
+  if (staffId) recs = recs.filter(r => r.staffId === staffId);
+  recs.sort((a,b) => b.date - a.date);
+
+  // stats
+  const totalHours = recs.filter(r=>r.out).reduce((s,r) => s + (netHours(r) || 0), 0);
+  const working = state.records.filter(r => {
+    const today = new Date().toDateString();
+    return !r.out && new Date(r.date).toDateString() === today;
+  });
+
+  const statsEl = document.getElementById('summary-stats');
+  statsEl.innerHTML = `
+    <div class="stat-box">
+      <div class="stat-num">${recs.length}</div>
+      <div class="stat-label">打刻件数（${month}）</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-num">${totalHours.toFixed(1)}</div>
+      <div class="stat-label">合計実働時間（h）</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-num">${working.length}</div>
+      <div class="stat-label">現在出勤中</div>
+    </div>
+  `;
+
+  const tbody = document.getElementById('records-tbody');
+  if (recs.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" class="empty">記録がありません</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = recs.map(r => {
+    const s = state.staff.find(x => x.id === r.staffId);
+    const name = s ? s.name : '不明';
+    const nh = netHours(r);
+    const hoursStr = nh !== null ? nh.toFixed(2) + ' h' : '—';
+    const bm = r.breakMins || (r.break ? 15 : 0); // 後方互換
+    const breakDisplay = r.out
+      ? (bm > 0 ? `<span class="badge badge-warn">${bm}分</span>` : `<span class="badge badge-gray">なし</span>`)
+      : '—';
+    const status = !r.out
+      ? `<span class="badge badge-green"><span class="dot dot-green" style="margin-right:4px"></span>勤務中</span>`
+      : `<span class="badge badge-gray">退勤済</span>`;
+    return `<tr class="${!r.out ? 'working-row' : ''}">
+      <td>${fmtDate(r.date)}</td>
+      <td>${name}</td>
+      <td>
+        ${fmt(r.in)}<br>
+        <span style="font-size:11px;color:var(--accent)">→ ${fmtRounded(r.in, true)}</span>
+      </td>
+      <td>${r.out
+        ? `${fmt(r.out)}<br><span style="font-size:11px;color:var(--accent)">→ ${fmtRounded(r.out, false)}</span>`
+        : '—'}</td>
+      <td>${breakDisplay}</td>
+      <td>${hoursStr} ${status}</td>
+      <td>
+        ${r.out ? `<button class="btn btn-ghost btn-sm" onclick="openEditRecord('${r.id}')">✏️ 修正</button>` : ''}
+        ${!r.out ? `<button class="btn btn-success btn-sm" onclick="forceOut('${r.id}')">退勤させる</button>` : ''}
+        <button class="btn btn-danger btn-sm" style="margin-left:4px" onclick="deleteRecord('${r.id}')">削除</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+document.getElementById('filter-month').addEventListener('change', renderRecords);
+document.getElementById('filter-staff').addEventListener('change', renderRecords);
+
+function forceOut(id) {
+  const r = state.records.find(x => x.id === id);
+  if (r) { r.out = Date.now(); saveState(); renderRecords(); toast('退勤処理しました'); }
+}
+function toggleBreakRecord(id) {
+  const r = state.records.find(x => x.id === id);
+  if (r) { r.break = !r.break; saveState(); renderRecords(); toast(r.break ? '休憩15分を追加しました' : '休憩を取り消しました'); }
+}
+
+// ====================================================
+// EDIT / ADD RECORD
+// ====================================================
+let editingRecordId = null;
+let editBreakChecked = false;
+
+function populateRecordStaffSelect(selectedId) {
+  const sel = document.getElementById('r-staff');
+  sel.innerHTML = '<option value="">スタッフを選択</option>';
+  state.staff.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.id; opt.textContent = s.name;
+    sel.appendChild(opt);
+  });
+  if (selectedId) sel.value = selectedId;
+}
+
+function openAddRecord() {
+  editingRecordId = null;
+  editBreakChecked = false;
+
+  document.getElementById('modal-record-title').textContent = '出勤を手動追加';
+  document.getElementById('modal-record-staff-wrap').style.display = 'block';
+  document.getElementById('modal-record-name').style.display = 'none';
+  populateRecordStaffSelect('');
+
+  // 今日の日付をデフォルトに
+  const today = new Date();
+  document.getElementById('r-date').value = today.toISOString().slice(0,10);
+  document.getElementById('r-in').value = '';
+  document.getElementById('r-out').value = '';
+  document.getElementById('r-break-mins').value = '0';
+  openModal('modal-record');
+}
+
+function openEditRecord(id) {
+  const r = state.records.find(x => x.id === id);
+  if (!r) return;
+  editingRecordId = id;
+  editBreakChecked = r.break || false;
+
+  document.getElementById('modal-record-title').textContent = '打刻を修正';
+  document.getElementById('modal-record-staff-wrap').style.display = 'none';
+  const s = state.staff.find(x => x.id === r.staffId);
+  const nameEl = document.getElementById('modal-record-name');
+  nameEl.textContent = s ? `${s.name}（${fmtDate(r.date)}）` : fmtDate(r.date);
+  nameEl.style.display = 'block';
+
+  const d = new Date(r.date);
+  document.getElementById('r-date').value = d.toISOString().slice(0,10);
+
+  const inD = new Date(r.in);
+  document.getElementById('r-in').value =
+    String(inD.getHours()).padStart(2,'0') + ':' + String(inD.getMinutes()).padStart(2,'0');
+
+  if (r.out) {
+    const outD = new Date(r.out);
+    document.getElementById('r-out').value =
+      String(outD.getHours()).padStart(2,'0') + ':' + String(outD.getMinutes()).padStart(2,'0');
+  } else {
+    document.getElementById('r-out').value = '';
+  }
+
+  document.getElementById('r-break-wrap') && document.getElementById('r-break-wrap').classList.toggle('checked', editBreakChecked);
+  const bm = r.breakMins || (r.break ? 15 : 0);
+  document.getElementById('r-break-mins').value = String(bm);
+  openModal('modal-record');
+}
+
+function toggleEditBreak() {
+  editBreakChecked = !editBreakChecked;
+  document.getElementById('r-break-wrap').classList.toggle('checked', editBreakChecked);
+}
+
+function saveRecord() {
+  const dateVal = document.getElementById('r-date').value;
+  const inVal = document.getElementById('r-in').value;
+  const outVal = document.getElementById('r-out').value;
+
+  if (!dateVal || !inVal) { toast('日付と出勤時刻は必須です', 'var(--warn)'); return; }
+
+  const [yr, mo, dy] = dateVal.split('-').map(Number);
+  const [inH, inM] = inVal.split(':').map(Number);
+  const newIn = new Date(yr, mo-1, dy, inH, inM, 0).getTime();
+
+  let newOut = null;
+  if (outVal) {
+    const [outH, outM] = outVal.split(':').map(Number);
+    newOut = new Date(yr, mo-1, dy, outH, outM, 0).getTime();
+    if (newOut <= newIn) { toast('退勤時刻は出勤時刻より後にしてください', 'var(--warn)'); return; }
+  }
+
+  const breakMins = parseInt(document.getElementById('r-break-mins').value) || 0;
+
+  if (editingRecordId) {
+    const r = state.records.find(x => x.id === editingRecordId);
+    if (!r) return;
+    r.date = newIn; r.in = newIn; r.out = newOut;
+    r.breakMins = breakMins; r.break = breakMins > 0;
+    toast('修正しました ✅');
+  } else {
+    const staffId = document.getElementById('r-staff').value;
+    if (!staffId) { toast('スタッフを選択してください', 'var(--warn)'); return; }
+    state.records.push({ id: uid(), staffId, date: newIn, in: newIn, out: newOut, breakMins, break: breakMins > 0 });
+    toast('出勤記録を追加しました ✅');
+  }
+
+  saveState();
+  closeModal('modal-record');
+  renderRecords();
+}
+
+function deleteRecord(id) {
+  if (!confirm('この記録を削除しますか？')) return;
+  state.records = state.records.filter(r => r.id !== id);
+  saveState(); renderRecords(); toast('削除しました');
+}
+
+function exportCSV() {
+  const month = document.getElementById('filter-month').value;
+  const [yr, mo] = month.split('-').map(Number);
+  let recs = state.records.filter(r => {
+    const d = new Date(r.date);
+    return d.getFullYear()===yr && d.getMonth()+1===mo;
+  }).sort((a,b) => a.date - b.date);
+
+  let csv = '日付,スタッフ名,実打刻(出勤),丸め後(出勤),実打刻(退勤),丸め後(退勤),休憩,実働時間(h)\n';
+  recs.forEach(r => {
+    const s = state.staff.find(x => x.id === r.staffId);
+    const nh = netHours(r);
+    const hoursStr = nh !== null ? nh.toFixed(2) : '';
+    const bm = r.breakMins || (r.break ? 15 : 0);
+    const breakLabel = bm > 0 ? `${bm}分` : 'なし';
+    const inActual = fmt(r.in);
+    const inRounded = fmtRounded(r.in, true);
+    const outActual = r.out ? fmt(r.out) : '';
+    const outRounded = r.out ? fmtRounded(r.out, false) : '';
+    csv += `${new Date(r.date).toLocaleDateString('ja-JP')},${s?.name||'不明'},${inActual},${inRounded},${outActual},${outRounded},${breakLabel},${hoursStr}\n`;
+  });
+  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `勤怠記録_${month}.csv`;
+  a.click();
+  toast('CSVを出力しました 📥');
+}
+
+// ====================================================
+// PAYROLL
+// ====================================================
+function calcPayroll() { renderPayroll(); }
+
+function renderPayroll() {
+  const month = document.getElementById('payroll-month').value;
+  const [yr, mo] = month.split('-').map(Number);
+
+  const recs = state.records.filter(r => {
+    const d = new Date(r.date);
+    return d.getFullYear()===yr && d.getMonth()+1===mo && r.out;
+  });
+
+  const el = document.getElementById('payroll-results');
+  if (state.staff.length === 0) {
+    el.innerHTML = '<div class="empty">スタッフが登録されていません</div>';
+    return;
+  }
+
+  let totalAll = 0;
+  let html = `<div class="grid2">`;
+
+  state.staff.forEach(s => {
+    const sRecs = recs.filter(r => r.staffId === s.id);
+    const totalH = sRecs.reduce((sum, r) => sum + (netHours(r) || 0), 0);
+    const pay = Math.round(totalH * s.wage);
+    // 交通費計算
+    const transportPerDay = s.transport || 0;
+    const transportRaw = transportPerDay * sRecs.length;
+    const transportCap = s.transportCap || 0;
+    const transport = transportCap > 0 ? Math.min(transportRaw, transportCap) : transportRaw;
+    const totalPay = pay + transport;
+    totalAll += totalPay;
+
+    html += `<div class="card">
+      <div class="flex-between" style="margin-bottom:12px">
+        <div>
+          <div style="font-weight:700;font-size:16px">${s.name}</div>
+          <div style="font-size:12px;color:var(--text2)">${s.kana} / ${s.type} / 時給 ¥${s.wage.toLocaleString()}</div>
+        </div>
+        <div class="payroll-total">¥${totalPay.toLocaleString()}</div>
+      </div>
+      <div class="payroll-row">
+        <span>勤務日数</span>
+        <span class="payroll-amount">${sRecs.length} 日</span>
+      </div>
+      <div class="payroll-row">
+        <span>合計実働時間</span>
+        <span class="payroll-amount">${totalH.toFixed(2)} h</span>
+      </div>
+      <div class="payroll-row">
+        <span>時給 × 実働時間</span>
+        <span class="payroll-amount">¥${pay.toLocaleString()}</span>
+      </div>
+      <div class="payroll-row">
+        <span>交通費 <small style="color:var(--text2)">（¥${transportPerDay}/日 × ${sRecs.length}日${transportCap>0?' 上限¥'+transportCap.toLocaleString():''}）</small></span>
+        <span class="payroll-amount" style="color:var(--accent)">¥${transport.toLocaleString()}</span>
+      </div>
+      <div class="payroll-row" style="font-weight:700;color:var(--accent3)">
+        <span>支給合計（税引前）</span>
+        <span class="payroll-amount">¥${totalPay.toLocaleString()}</span>
+      </div>
+    </div>`;
+  });
+
+  html += `</div>
+  <div class="card" style="margin-top:16px;text-align:right">
+    <div style="font-size:13px;color:var(--text2);margin-bottom:6px">${month} 給与合計</div>
+    <div style="font-family:'Space Mono',monospace;font-size:36px;font-weight:700;color:var(--accent)">¥${totalAll.toLocaleString()}</div>
+  </div>`;
+
+  el.innerHTML = html;
+}
+
+// ====================================================
+// STAFF
+// ====================================================
+function renderStaff() {
+  const tbody = document.getElementById('staff-tbody');
+  if (state.staff.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" class="empty">スタッフが登録されていません</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = state.staff.map(s => {
+    const today = new Date().toDateString();
+    const working = state.records.some(r =>
+      r.staffId === s.id && !r.out && new Date(r.date).toDateString() === today
+    );
+    return `<tr>
+      <td><strong>${s.name}</strong></td>
+      <td>¥${s.wage.toLocaleString()}</td>
+      <td>¥${(s.transport||0).toLocaleString()}</td>
+      <td><span class="badge badge-blue">${s.type}</span></td>
+      <td>${working
+        ? `<span class="badge badge-green"><span class="dot dot-green" style="margin-right:4px"></span>出勤中</span>`
+        : `<span class="badge badge-gray">退勤</span>`}</td>
+      <td>
+        <button class="btn btn-ghost btn-sm" onclick="editStaff('${s.id}')">編集</button>
+        <button class="btn btn-danger btn-sm" style="margin-left:4px" onclick="deleteStaff('${s.id}')">削除</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function openAddStaff() {
+  state.editingStaffId = null;
+  document.getElementById('modal-staff-title').textContent = 'スタッフを追加';
+  document.getElementById('s-name').value = '';
+  document.getElementById('s-kana').value = '';
+  document.getElementById('s-wage').value = '1100';
+  document.getElementById('s-type').value = 'アルバイト';
+  document.getElementById('s-transport').value = '0';
+  document.getElementById('s-transport-cap').value = '0';
+  document.getElementById('modal-staff').classList.add('open');
+}
+
+function editStaff(id) {
+  const s = state.staff.find(x => x.id === id);
+  if (!s) return;
+  state.editingStaffId = id;
+  document.getElementById('modal-staff-title').textContent = 'スタッフを編集';
+  document.getElementById('s-name').value = s.name;
+  document.getElementById('s-kana').value = s.kana || '';
+  document.getElementById('s-wage').value = s.wage;
+  document.getElementById('s-type').value = s.type;
+  document.getElementById('s-transport').value = s.transport || 0;
+  document.getElementById('s-transport-cap').value = s.transportCap || 0;
+  document.getElementById('modal-staff').classList.add('open');
+}
+
+function saveStaff() {
+  const name = document.getElementById('s-name').value.trim();
+  const kana = document.getElementById('s-kana').value.trim();
+  const wage = parseInt(document.getElementById('s-wage').value) || 1000;
+  const type = document.getElementById('s-type').value;
+  const transport = parseInt(document.getElementById('s-transport').value) || 0;
+  const transportCap = parseInt(document.getElementById('s-transport-cap').value) || 0;
+  if (!name) { toast('名前を入力してください', 'var(--warn)'); return; }
+
+  if (state.editingStaffId) {
+    const s = state.staff.find(x => x.id === state.editingStaffId);
+    if (s) { s.name=name; s.kana=kana; s.wage=wage; s.type=type; s.transport=transport; s.transportCap=transportCap; }
+    toast('更新しました ✅');
+  } else {
+    state.staff.push({ id: uid(), name, kana, wage, type, transport, transportCap });
+    toast('スタッフを追加しました ✅');
+  }
+  saveState();
+  closeModal('modal-staff');
+  renderStaff();
+  populateStaffSelects();
+  renderQRCodes();
+}
+
+function deleteStaff(id) {
+  if (!confirm('このスタッフを削除しますか？')) return;
+  state.staff = state.staff.filter(s => s.id !== id);
+  saveState(); renderStaff(); populateStaffSelects(); renderQRCodes();
+  toast('削除しました');
+}
+
+// ====================================================
+// QR CODES
+// ====================================================
+function renderQRCodes() {
+  const wrap = document.getElementById('qr-display-wrap');
+  wrap.innerHTML = '';
+  if (state.staff.length === 0) {
+    wrap.innerHTML = '<div class="empty" style="color:#555">スタッフを登録するとQRコードが生成されます</div>';
+    return;
+  }
+  state.staff.forEach(s => {
+    const div = document.createElement('div');
+    div.className = 'qr-card';
+    const qrDiv = document.createElement('div');
+    div.appendChild(qrDiv);
+    const nameEl = document.createElement('div');
+    nameEl.className = 'qr-card-name';
+    nameEl.textContent = s.name;
+    div.appendChild(nameEl);
+    const idEl = document.createElement('div');
+    idEl.className = 'qr-card-id';
+    idEl.textContent = s.kana || s.type;
+    div.appendChild(idEl);
+    wrap.appendChild(div);
+    new QRCode(qrDiv, {
+      text: s.id,
+      width: 130, height: 130,
+      colorDark: '#000', colorLight: '#fff',
+      correctLevel: QRCode.CorrectLevel.M
+    });
+  });
+}
+
+// ====================================================
+// SELECTS
+// ====================================================
+function populateStaffSelects() {
+  ['manual-staff','filter-staff'].forEach(id => {
+    const sel = document.getElementById(id);
+    const cur = sel.value;
+    sel.innerHTML = id === 'filter-staff' ? '<option value="">全スタッフ</option>' : '<option value="">スタッフを選択</option>';
+    state.staff.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.id; opt.textContent = s.name;
+      sel.appendChild(opt);
+    });
+    if (cur) sel.value = cur;
+  });
+}
+
+// ====================================================
+// MODAL
+// ====================================================
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+});
+
+populateStaffSelects();
+</script>
+</body>
+</html>
